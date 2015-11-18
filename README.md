@@ -10,3 +10,9 @@ The cronjob running on lab-pre042 consists of the following
 ````
 11 00 * * * /home/common/meg_quality/meg_quality_cronjob.sh > /dev/null 2>&1
 ````
+
+The use of Xvfb in the shell script is to ensure that all figures draw
+correctly. We had cases where a figure would not be saved to disk
+correctly due to the setup of making the figures without an actual
+(virtual) graphical terminal.
+
