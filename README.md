@@ -6,5 +6,5 @@ The data partition of odin (our MEG acquisition computer) is NFS exported
 to lap-pre042 (our realtime linux computer).
 
 The cronjob running on lab-pre042 consists of
-11 00 * * * /home/common/meg_quality/meg_quality_cronjob.sh > /dev/null 2>&1
+    11 00 * * * /home/common/meg_quality/meg_quality_cronjob.sh > /dev/null 2>&1
 
