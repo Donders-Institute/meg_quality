@@ -46,8 +46,9 @@ cfg.savemat   = 'yes';
 cfg.visualize = 'yes';
 cfg.saveplot  = 'yes';
 ft_qualitycheck(cfg);
-catch
+catch ME
 warning('problem executing ft_qualitycheck');
+disp(ME);
 end % catch
 
 else
@@ -58,6 +59,7 @@ end % for all present datasets
 
 catch ME
 warning('problem executing meg_quality_cronjob');
+disp(ME);
 end
 
 exit
