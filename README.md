@@ -2,8 +2,9 @@ This directory contains the MATLAB code for the automated MEG
 quality check that runs every night. If you want to look at the quality
 of older data that is not present here any more, please ask Robert.
 
-The data is reguarchived using rsync from odin (our MEG acquisition
-computer) to the MEG project directory on central storage.
+All MEG data is archived from the MEG acquisition computer to the data
+repository and copied to a project directory on our network attached
+central storage.
 
 The quality check script is executed from a cronjob on mentat001 (login
 node of our compute cluster), which in turn starts the actual quality
@@ -12,8 +13,8 @@ analysis as job on the compute cluster.
 The cronjob on mentat001 consists of the following
 
 ````
-01 00 * * * /project/3010102.04/scripts/meg_archive.sh
-04 00 * * * /project/3010102.04/scripts/meg_quality.sh
+12 1 * * * /project/3055020.01/scripts/meg_cleanup.sh 
+16 1 * * * /project/3055020.01/scripts/meg_quality.sh 
 
 ````
 
