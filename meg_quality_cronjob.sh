@@ -8,5 +8,8 @@
 source /opt/optenv.sh
 module load matlab/R2012b
 
+# this is where qsub is installed
+export PATH=/var/spool/torque/bin:${PATH}
+
 cd /project/3055020.01/scripts/meg_quality
-/opt/cluster/bin/matlab_sub meg_quality_cronjob.m
+matlab_sub meg_quality_cronjob.m
