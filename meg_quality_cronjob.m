@@ -7,20 +7,24 @@ function meg_quality_cronjob
 % for each of the new MEG datasets
 
 try
-  clear all
   clear global
   
-  % ensure that the script is executed in the right directory
-  cd /project/3055020.01/scripts/meg_quality
+  global ft_default
+  ft_default.showcallinfo = 'no';
+  ft_warning on
+  ft_notice off
+  ft_info   off
+  ft_debug  off
   
   % ensure that the path is set to a fully clean version
   restoredefaultpath
   addpath /home/common/matlab/fieldtrip
-  addpath /project/3055020.01/scripts/meg_quality
+  addpath /project/3055020.02/code
+  cd /project/3055020.02
   ft_defaults
   
   % ensure that the data is read from the correct location
-  prefix  = '/project/3055020.01/raw';
+  prefix  = '/project/3055020.01/raw/2020';
   
   dataset = {};
   day     = dir(sprintf('%s/20*',prefix));
@@ -48,8 +52,8 @@ try
         cfg.dataset = dataset{i};
         cfg.analyze   = 'yes';
         cfg.savemat   = 'yes';
-        cfg.visualize = 'yes';
-        cfg.saveplot  = 'yes';
+        cfg.visualize = 'no';
+        cfg.saveplot  = 'no';
         ft_qualitycheck(cfg);
       catch ME
         warning('problem executing ft_qualitycheck');
@@ -66,9 +70,11 @@ try
   end % for all present datasets
   
 catch ME
-  warning('problem executing meg_quality_cronjob');
+  warning('problem executing ft_qualitycheck');
   disp(ME);
+  for j=1:numel(ME.stack)
+    disp(ME.stack(j));
+  end
 end
 
 exit
-
