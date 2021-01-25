@@ -1,7 +1,7 @@
 function meg_quality_cronjob
 
 % MEM 8gb
-% WALLTIME 8:00:00
+% WALLTIME 18:00:00
 
 % this function is running every night and computes some quality measures
 % for each of the new MEG datasets
@@ -19,9 +19,10 @@ try
   % ensure that the path is set to a fully clean version
   restoredefaultpath
   addpath /home/common/matlab/fieldtrip
-  addpath /project/3055020.02/code
-  cd /project/3055020.02
   ft_defaults
+
+  addpath /project/3055020.02/code
+  cd /project/3055020.02/2020
   
   % ensure that the data is read from the correct location
   prefix  = '/project/3055020.01/raw/2020';
