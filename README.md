@@ -13,13 +13,11 @@ analysis as job on the compute cluster.
 The cronjob on mentat001 consists of the following
 
 ````
-12 1 * * * /project/3055020.01/scripts/meg_cleanup.sh 
-16 1 * * * /project/3055020.01/scripts/meg_quality.sh 
+16 1 * * * /project/3055020.02/code/meg_quality_cronjob.sh > /dev/null 2>&1
 
 ````
 
-The use of Xvfb in the shell script is to ensure that all figures draw
-correctly. We had cases where a figure would not be saved to disk
-correctly due to the setup of making the figures without an actual
-(virtual) graphical terminal.
+In the past we used Xvfb in the shell script to ensure that all figures
+draw correctly. That is now not working any more, and the figures are
+not created automatically.
 
