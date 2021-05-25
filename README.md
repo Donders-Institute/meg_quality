@@ -14,7 +14,6 @@ The cronjob on mentat001 consists of the following
 
 ````
 16 1 * * * /project/3055020.02/code/meg_quality_cronjob.sh > /dev/null 2>&1
-
 ````
 
 In the past we used Xvfb in the shell script to ensure that all figures
