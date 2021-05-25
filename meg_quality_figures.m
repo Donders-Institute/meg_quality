@@ -5,7 +5,9 @@ for i=1:numel(d)
   disp('----------------------------------------------------------------');
   disp(d(i).name);
   
-  try  cfg = [];
+  try
+    % this will read the existing matfile and create (and write) the figures
+    cfg = [];
     cfg.analyze = 'no';
     cfg.matfile = d(i).name;
     ft_qualitycheck(cfg)
