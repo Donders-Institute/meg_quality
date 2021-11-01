@@ -20,3 +20,6 @@ In the past we used Xvfb in the shell script to ensure that all figures
 draw correctly. That is now not working any more, and the figures are
 not created automatically.
 
+In addition to the MATLAB code for the automatic quality checks, there is code
+that has been written to act upon data quality issues reported by the MEG user
+base.
