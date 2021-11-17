@@ -21,7 +21,9 @@ try
   restoredefaultpath
   addpath /home/common/matlab/fieldtrip
   ft_defaults
-  
+ 
+  % not sure whether adding obsolete before ft_defaults causes side effects (JM) 
+  addpath /home/common/matlab/fieldtrip/compat/obsolete
   addpath /project/3055020.02/code
   
   % this is where the raw data is located
