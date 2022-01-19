@@ -24,21 +24,30 @@ cfg.channel = 'MEG';
 cfg.demean  = 'yes';
 cfg.continuous = 'yes';
 data = ft_preprocessing(cfg);
-  
+
+cfg.channel = 'EEG';
+eeg = ft_preprocessing(cfg);
+
 S = [];
+Seeg = [];
 for kk = 1:numel(data.trial)
   S(:,kk) = std(data.trial{kk},[],2);
+  Seeg(:,kk) = std(eeg.trial{kk},[],2);
 end
 
 % discard the last chunk of trials, which almost always contain an
 % end-of-recording clip
 S = S(:, 1:end-5);
+Seeg = Seeg(:, 1:end-5);
 %S = S./std(S,[],2);
  
 % visualize a 'moving median' of the channel specific std (over 5 s
 % chunks), which removes the spikes.
 figure;plot((1:size(S,2)).*5,(ft_preproc_medianfilter(S,9)));
 xlabel('time (s)'); ylabel('MEG signal std per 5 s')
+
+figure;plot((1:size(S,2)).*5,(ft_preproc_medianfilter(Seeg,9)));
+xlabel('time (s)'); ylabel('EEG signal std per 5 s')
 
 cfg = [];
 cfg.method = 'mtmfft';
@@ -59,7 +68,8 @@ xlabel('frequency (Hz)'); ylabel('power ratio');
 
 % there is a prominent increase in the power of the higher
 % harmonics of the power line, given the multitaper settings used above, it
-% is strongest at 150.6 Hz, and of course there's a lot of rubbish > 200
+% is strongest at 150.6 Hz, and of course there's a lot of rubbish > 200,
+% and beyond the cutoff of the analog filter
 ix = nearest(freq.freq, 200);
 iy = nearest(freq.freq, 300);
 figure;plot((1:size(S,2)).*5, log10(mean(freq.powspctrm(:,:,ix:iy),3)));
