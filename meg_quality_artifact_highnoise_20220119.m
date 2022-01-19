@@ -43,7 +43,7 @@ xlabel('time (s)'); ylabel('MEG signal std per 5 s')
 cfg = [];
 cfg.method = 'mtmfft';
 cfg.output = 'pow';
-cfg.foilim = [0 400];
+cfg.foilim = [0 600];
 cfg.taper = 'dpss';
 cfg.tapsmofrq = 0.6;
 cfg.keeptrials = 'yes';
@@ -61,5 +61,6 @@ xlabel('frequency (Hz)'); ylabel('power ratio');
 % harmonics of the power line, given the multitaper settings used above, it
 % is strongest at 150.6 Hz, and of course there's a lot of rubbish > 200
 ix = nearest(freq.freq, 200);
-figure;plot((1:size(S,2)).*5, log10(mean(freq.powspctrm(:,:,ix:end),3)));
-xlabel('time (s)'); ylabel('log10 power > 200 Hz');
+iy = nearest(freq.freq, 300);
+figure;plot((1:size(S,2)).*5, log10(mean(freq.powspctrm(:,:,ix:iy),3)));
+xlabel('time (s)'); ylabel('log10 power [200-300] Hz');
