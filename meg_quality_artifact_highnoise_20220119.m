@@ -25,6 +25,9 @@ cfg.demean  = 'yes';
 cfg.continuous = 'yes';
 data = ft_preprocessing(cfg);
 
+cfg.channel = 'MEGREF';
+megref = ft_preprocessing(cfg);
+
 cfg.channel = 'EEG';
 eeg = ft_preprocessing(cfg);
 
@@ -34,10 +37,12 @@ adc = ft_preprocessing(cfg);
 S = [];
 Seeg = [];
 Sadc = [];
+Sref = [];
 for kk = 1:numel(data.trial)
   S(:,kk) = std(data.trial{kk},[],2);
   Seeg(:,kk) = std(eeg.trial{kk},[],2);
   Sadc(:,kk) = std(adc.trial{kk},[],2);
+  Sref(:,kk) = std(megref.trial{kk},[],2);
 end
 
 % discard the last chunk of trials, which almost always contain an
@@ -45,6 +50,7 @@ end
 S = S(:, 1:end-5);
 Seeg = Seeg(:, 1:end-5);
 Sadc = Sadc(:, 1:end-5);
+Sref = Sref(:, 1:end-5);
 %S = S./std(S,[],2);
  
 % visualize a 'moving median' of the channel specific std (over 5 s
@@ -57,6 +63,9 @@ xlabel('time (s)'); ylabel('EEG signal std per 5 s')
 
 figure;plot((1:size(S,2)).*5,(ft_preproc_medianfilter(Sadc,9)));
 xlabel('time (s)'); ylabel('adc signal std per 5 s')
+
+figure;plot((1:size(S,2)).*5,(ft_preproc_medianfilter(Sref,9)));
+xlabel('time (s)'); ylabel('MEGREF signal std per 5 s')
 
 cfg = [];
 cfg.method = 'mtmfft';
