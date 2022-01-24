@@ -70,10 +70,10 @@ xlabel('time (s)'); ylabel('MEGREF signal std per 5 s')
 cfg = [];
 cfg.method = 'mtmfft';
 cfg.output = 'pow';
-cfg.foilim = [0 600];
+cfg.foilim = [0 3000];
 cfg.taper = 'dpss';
 cfg.tapsmofrq = 0.6;
-cfg.keeptrials = 'yes';
+cfg.keeptrials = 'no';
 cfg.trials = 1:size(S,2);
 freq = ft_freqanalysis(cfg, data);
 
