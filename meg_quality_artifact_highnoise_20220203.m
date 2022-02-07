@@ -5,7 +5,7 @@
 
 %%
 datadir = '/project/3055020.01/raw/';
-year = '2022';
+year    = '2022';
 
 date     = '20220203';
 dataset1 = 'sub004ses03run03_3023009.06_20220203_01.ds'; % heeft continu artifact
@@ -16,43 +16,36 @@ dataset2 = fullfile(datadir,year,date,dataset2);
 date     = '20220127';
 dataset3 = 'sub004ses02run3_3023009.06_20220127_01.ds'; % deze zou schoon zijn na filteren
 dataset3 = fullfile(datadir,year,date,dataset3);
-
-%%
 datasets = {dataset1 dataset2 dataset3};
-for k = 1:numel(datasets)
-  cfg = [];
-  cfg.dataset = datasets{k};
-  hdr = ft_read_header(cfg.dataset);
-
-  % quick and dirty 5 second chunks
-  N        = hdr.nSamples*hdr.nTrials;
-  trl      = [1:6000:(N-5999);6000:6000:N]';
-  trl(:,3) = 0;
-
-  cfg.trl = trl(1:2:end,:);%(1:min(size(trl,1),12*10),:);
-  cfg.channel = 'MLT11';%'MEG';
-  cfg.demean  = 'yes';
-  cfg.continuous = 'yes';
-  data = ft_preprocessing(cfg);
-
-  cfg        = [];
-  cfg.method = 'mtmfft';
-  cfg.output = 'pow';
-  cfg.foilim = [0 600];
-  cfg.taper  = 'hanning';
-  cfg.keeptrials = 'yes';
-  freq{k}    = ft_freqanalysis(cfg, data);
-end
 
 %%
-figure; imagesc(freq{1}.freq, 10*(1:numel(freq{1}.cumtapcnt)), log10(squeeze(freq{1}.powspctrm(:,1,:)))); xlabel('frequency (Hz)'); ylabel('time (s)'); title(dataset1(39:54),'interpreter','none');
-figure; imagesc(freq{2}.freq, 10*(1:numel(freq{2}.cumtapcnt)), log10(squeeze(freq{2}.powspctrm(:,1,:)))); xlabel('frequency (Hz)'); ylabel('time (s)'); title(dataset2(39:54),'interpreter','none');
-figure; imagesc(freq{3}.freq, 10*(1:numel(freq{3}.cumtapcnt)), log10(squeeze(freq{3}.powspctrm(:,1,:)))); xlabel('frequency (Hz)'); ylabel('time (s)'); title(dataset3(39:54),'interpreter','none');
 
-%%
-% load data from dataset2
+% The morphology of the artifact is a (high frequency) peak in the
+% spectrum, with 2 flanking peaks at +/- 50 Hz, which reflect a beat with
+% the powerline fluctuations. The centre frequency changes over time, is
+% usually of sufficiently high frequency to make it disappear with a
+% lowpassfilter with a cutoff that does not affect physiological
+% frequencies. However, sometimes the peak (likely reflecting a beat
+% between two system clocks) is drifting into lower frequencies, as per
+% the 'dataset1' in the above example. There, the spectral peak even
+% wraps around 0. In the examples above, the spatial distribution of the
+% artifact does not suggest a far away source, which make 3d order
+% gradient balancing useless. A generic solution might be to use PCA
+% (based on the MEG channels), where the strategy would be to sensitize
+% the data for the drifting artifact, requiring a per segment peak
+% detection. This leads to the following steps: 1) read in the data in
+% chunks of 5 s (focus on MLT and MRT which seem anecdotally most often
+% affected), 2) do spectral transformation, 3) detect the peak using the
+% +/- 50 Hz morphology, 4) read in all MEG data, 5) band-pass filter with
+% optimized frequency band per trial, 6) PCA, 7) identify to-be-rejected
+% topographies, 8) store the identified topographies to-be-used on the
+% data-of-interest.
+
+dataset = datasets{2};
+
+%% 1) read in subset of data for artifact peak detection
 cfg = [];
-cfg.dataset = datasets{2};
+cfg.dataset = dataset;
 hdr = ft_read_header(cfg.dataset);
 
 % quick and dirty 5 second chunks
@@ -60,108 +53,126 @@ N        = hdr.nSamples*hdr.nTrials;
 trl      = [1:6000:(N-5999);6000:6000:N]';
 trl(:,3) = 0;
 
-cfg.trl = trl(1:2:end,:);%(1:min(size(trl,1),12*10),:);
-cfg.channel = {'MEG' 'MEGREF'};
+cfg.trl = trl(1:2:end,:);
+cfg.channel = {'MLT' 'MRT'};%'MEG';
+cfg.demean  = 'yes';
+cfg.continuous = 'yes';
+cfg.dftfilter = 'yes';
+cfg.hpfilter  = 'yes';
+cfg.hpfreq    = 0.5;
+cfg.hpfilttype = 'firws';
+data = ft_preprocessing(cfg);
+
+%% 2) spectral transformation
+cfg        = [];
+cfg.method = 'mtmfft';
+cfg.output = 'pow';
+cfg.foilim = [0 600];
+cfg.keeptrials = 'yes';
+cfg.tapsmofrq  = 1;
+freq       = ft_freqanalysis(cfg, data);
+
+% show what it looks like
+figure; imagesc(freq.freq, 10*(1:numel(freq.cumtapcnt)), squeeze(mean(log10(freq.powspctrm),2)));
+xlabel('frequency (Hz)');
+ylabel('time (s)');
+
+%% 3) detect peak to be used for PCA preprocessing
+pow   = squeeze(mean(log10(freq.powspctrm),2));
+pow   = imgaussfilt(pow, 2); % requires imageprocessing toolbox
+freqs = freq.freq; 
+n     = numel(freqs);
+
+% make reference signal for cross-correlation
+sel   = nearest(freqs, [0 50]);
+sel   = [sel diff(sel)+sel(2)]; % three 'peaks' 50 Hz apart
+ref   = zeros(1, max(sel));
+ref(sel) = 1;
+ref   = [zeros(1,(n-numel(ref))/2) ref zeros(1,(n-numel(ref))/2)];
+ref   = convn(ref, hanning(20)', 'same');
+ref   = ref-mean(ref);
+for m = 1:size(pow,1)  
+  pow_ = pow(m,:) - mean(pow(m,:));
+  [X(m,:), lags] = xcorr(pow_, ref, 'coeff');
+end
+X = imgaussfilt(X, 2); % filter once more
+for m = 1:size(X,1)
+  [dummy, M(m,1)] = max(X(m,:));
+end
+M = M - (n-1)./2;
+
+figure; hold on;
+imagesc(pow);
+plot(M, 1:size(pow,1), 'wo');
+axis xy; axis tight
+
+bpfreq = freqs(M)' + repmat([-5 5], [numel(M) 1]);
+
+%% 4) read in the MEG data (now all channels)
+cfg = [];
+cfg.dataset = dataset;
+cfg.trl = trl(1:2:end,:);
+cfg.channel = 'MEG';
 cfg.demean  = 'yes';
 cfg.continuous = 'yes';
 data = ft_preprocessing(cfg);
 
-%%
-% the spectral artifact is a drifting peak that shifts from 45-55 in the
-% first chunk to 275-285 in the last chunk
-bplow  = linspace(40,270,128);
-bphigh = linspace(60,290,128);
-for k = 1:numel(data.trial)
-  tmp = ft_preproc_bandpassfilter(data.trial{k}, 1200, [bplow(k) bphigh(k)], [], 'firws');
-  S(:,k) = std(tmp, [], 2);
+%% 5) bandpass filter per trial
+dataorig = data;
+for m = 1:numel(data.trial)
+  data.trial{m} = ft_preproc_bandpassfilter(data.trial{m}, 1200, bpfreq(m,:), [], 'firws');
 end
 
-%%
-F        = [];
-F.label  = data.label;
-F.powspctrm    = S;
-F.dimord = 'chan_freq';
-F.time   = (bplow+bphigh)./2;
-
-cfg = [];
-cfg.layout = 'CTF275_helmet.mat';
-cfg.parameter = 'powspctrm';
-ft_topoplotER(cfg, F);
-% the spatial topography is quite constant over frequency, with a hotspot
-% in MLT32
-
-%%
-
-cfg = [];
-cfg.gradient = 'G3BR';
-data_g3br = ft_denoise_synthetic(cfg, data);
-
-cfg = [];
-cfg.method = 'mtmfft';
-cfg.output = 'pow';
-cfg.foilim = [0 600];
-cfg.taper = 'hanning';
-cfg.keeptrials = 'yes';
-cfg.channel = 'MLT32';
-freq_g3br = ft_freqanalysis(cfg, data_g3br);
-
-figure; imagesc(freq{2}.freq, 10*(1:numel(freq{2}.cumtapcnt)), log10(squeeze(freq_g3br.powspctrm(:,1,:)))); xlabel('frequency (Hz)'); ylabel('time (s)'); title(dataset2(39:54),'interpreter','none');
-% third order gradient balancing does not help here
-clear data_g3br
-
-% is the artifact visible on the references? -> yes
-cfg.channel = 'MEGREF';
-freqref = ft_freqanalysis(cfg, data);
-figure; imagesc(freq{2}.freq, 10*(1:numel(freq{2}.cumtapcnt)), log10(squeeze(freqref.powspctrm(:,15,:)))); xlabel('frequency (Hz)'); ylabel('time (s)'); title(dataset2(39:54),'interpreter','none');
-
-% is it perhaps out of phase with the sensors? -> no clear indication that
-% this is the case. Perhaps the artifact's source is close by?
-figure;plot(data.time{1}, zscore(data.trial{1}(15,:))); 
-hold on;plot(data.time{1}, zscore(data.trial{1}(138,:))); xlim([1 1.2]);
-
-figure;plot(data.time{1}, zscore(data.trial{1}(100:120,:), 0, 2)); xlim([1 1.2]);
-
-%%
-% do a PCA on filtered data:
-cfg = [];
-cfg.channel = 'MEG';
-datameg = ft_selectdata(cfg, data);
-
-% the spectral artifact in this dataset is a drifting peak that shifts from 45-55 in the
-% first chunk to 275-285 in the last chunk
-bplow  = linspace(40,270,128);
-bphigh = linspace(60,290,128);
-for k = 1:numel(datameg.trial)
-  datameg.trial{k} = ft_preproc_bandpassfilter(datameg.trial{k}, 1200, [bplow(k) bphigh(k)], [], 'firws');
-end
-
-% memory problems require downsampling, or cell mode processing -> JM
-% hacked ft_componentanalysis for now
-cfg = [];
-cfg.method = 'pca';
+%% 6) PCA
+cfg          = [];
+cfg.method   = 'pca';
 cfg.cellmode = 'yes';
-comp = ft_componentanalysis(cfg, datameg);
+comp         = ft_componentanalysis(cfg, data);
 
-cfgsel = [];
-cfgsel.channel = 'MEG';
+V = zeros(numel(comp.label), numel(comp.trial));
+for m = 1:numel(comp.trial)
+  V(:,m) = var(comp.trial{m},[],2);
+end
+figure;plot(log10(mean(V,2)),'o');
+ylabel('variance (T^2)');
+xlabel('component #');
 
 cfg = [];
-cfg.component = [1 2];
-dataclean     = ft_rejectcomponent(cfg, comp, ft_selectdata(cfgsel, data));
+cfg.component = 1:4;
+cfg.layout = 'CTF275_helmet.mat';
+ft_topoplotIC(cfg, comp);
+
+%% 7) reject components and evaluate the effect
+Vm = mean(V, 2)';
+Vm = Vm./Vm(1);
+cfg = [];
+cfg.component = find(Vm>0.01); % this may be specific to the dataset
+data = ft_rejectcomponent(cfg, comp, dataorig);
 
 cfg        = [];
 cfg.method = 'mtmfft';
 cfg.output = 'pow';
 cfg.foilim = [0 600];
-cfg.taper  = 'hanning';
 cfg.keeptrials = 'yes';
-cfg.channel = 'MLT32';
-freqclean   = ft_freqanalysis(cfg, dataclean);
-freqdirty   = ft_freqanalysis(cfg, data);
-figure; imagesc(freqdirty.freq, 10*(1:numel(freqdirty.cumtapcnt)), log10(squeeze(freqdirty.powspctrm(:,1,:)))); xlabel('frequency (Hz)'); ylabel('time (s)'); title(dataset2(39:54),'interpreter','none');
-figure; imagesc(freqclean.freq, 10*(1:numel(freqclean.cumtapcnt)), log10(squeeze(freqclean.powspctrm(:,1,:)))); xlabel('frequency (Hz)'); ylabel('time (s)'); title(dataset2(39:54),'interpreter','none');
+cfg.tapsmofrq  = 1;
+freqorig   = ft_freqanalysis(cfg, dataorig);
+freq       = ft_freqanalysis(cfg, data);
 
-%%
-% evaluate whether this strategy will also work for the other dataset
+% show what it looks like
+figure; imagesc(freq.freq, 10*(1:numel(freq.cumtapcnt)), squeeze(mean(log10(freqorig.powspctrm),2)));
+xlabel('frequency (Hz)');
+ylabel('time (s)');
+title('pre cleaning');
 
+figure; imagesc(freq.freq, 10*(1:numel(freq.cumtapcnt)), squeeze(mean(log10(freq.powspctrm),2)));
+xlabel('frequency (Hz)');
+ylabel('time (s)');
+title('post cleaning');
 
+figure; hold on
+sel = match_str(data.label, 'MLT32');
+plot(dataorig.time{1}, dataorig.trial{1}(sel,:));
+plot(data.time{1}, data.trial{1}(sel,:));
+xlim([0.5 1.5]);
+xlabel('time (s');
+ylabel('MEG amplitude (T)');
