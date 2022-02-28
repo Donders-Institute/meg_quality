@@ -51,9 +51,8 @@ description = {'Fs 1200: door closed with noise';
 % usually of sufficiently high frequency to make it disappear with a
 % lowpassfilter with a cutoff that does not affect physiological
 % frequencies. However, sometimes the peak (likely reflecting a beat
-% between two system clocks) is drifting into lower frequencies, as per
-% the 'dataset1' in the above example. There, the spectral peak even
-% wraps around 0. In the examples above, the spatial distribution of the
+% between two system clocks) is drifting into lower frequencies. There, 
+% the spectral peak even wraps around 0. The spatial distribution of the
 % artifact does not suggest a far away source, which make 3d order
 % gradient balancing useless. A generic solution might be to use PCA
 % (based on the MEG channels), where the strategy would be to sensitize
@@ -198,14 +197,14 @@ for k = 1:numel(D)
   freq       = ft_freqanalysis(cfg, data);
 
   % show what it looks like
-  figure; imagesc(freq.freq, 2*nn*(1:numel(freq.cumtapcnt)), squeeze(mean(log10(freqorig.powspctrm),2)));
+  figure; imagesc(freq.freq, 2*(nn./hdr.Fs)*(1:numel(freq.cumtapcnt)), squeeze(mean(log10(freqorig.powspctrm),2)));
   xlabel('frequency (Hz)');
   ylabel('time (s)');
   abc = caxis;
   title(sprintf('%s pre cleaning, %s', D{k}(end-13:end-3), description{k}), 'interpreter', 'none');
   exportgraphics(gcf, 'emptyroom_analysis_20220223.pdf', 'Append', true);
 
-  figure; imagesc(freq.freq, 2*nn*(1:numel(freq.cumtapcnt)), squeeze(mean(log10(freq.powspctrm),2)));
+  figure; imagesc(freq.freq, 2*(nn./hdr.Fs)*(1:numel(freq.cumtapcnt)), squeeze(mean(log10(freq.powspctrm),2)));
   xlabel('frequency (Hz)');
   ylabel('time (s)');
   caxis(abc);
