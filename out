@@ -1,0 +1,11 @@
+mv meg_quality_artifact20Hz_20211021.m            artifact20Hz_20211021.m
+mv meg_quality_artifact20Hz_20211021_3011327.m    artifact20Hz_20211021_3011327.m
+mv meg_quality_artifact20Hz_20211021_denoise.m    artifact20Hz_20211021_denoise.m
+mv meg_quality_artifact20Hz_history.m             artifact20Hz_history.m
+mv meg_quality_artifact_highnoise_20220119.m      artifactRF_20220119.m
+mv meg_quality_artifact_highnoise_20220124.m      artifactRF_20220124.m
+mv meg_quality_artifact_highnoise_20220203.m      artifactRF_20220203.m
+mv meg_quality_artifact_highnoise_20220222.m      artifactRF_20220222.m
+mv meg_quality_artifact_highnoise_20220228.m      artifactRF_20220228.m
+mv meg_quality_artifact_highnoise_20220310.m      artifactRF_20220310.m
+mv meg_quality_artifact_highnoise_spectrum.m      artifactRF_latest.m
