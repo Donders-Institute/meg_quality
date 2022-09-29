@@ -9,7 +9,8 @@ global ft_default;
 ft_default.trackmeminfo  = 'no';
 ft_default.tracktimeinfo = 'no';
 ft_default.trackdatainfo = 'no';
-ft_default.showcallinfo = 'no';
+ft_default.showcallinfo  = 'no';
+ft_default.checkconfig   = 'no';
 
 % avoid too much pollution to the screen output
 ft_info once
@@ -27,10 +28,6 @@ for k = 1:numel(d)
 end
 dataset = datasets{1};
 
-% this is one of Noor's datasets, which uses a RIFT paradigm. Therefore,
-% one would expect the 20Hz+harmonics artifact to show up in the quality
-% figure
-
 cfg                 = [];
 cfg.dataset         = dataset;
 cfg.trialfun        = 'ft_trialfun_general';
@@ -41,7 +38,8 @@ trl = cfg.trl;
 
 cfg = [];
 cfg.dataset  = dataset;
-cfg.trl      = trl(1:101,:); % run only 100 chunks for now
+cfg.trl      = trl(1:50,:);%(1:200,:); % run only 50 chunks for now
 cfg.saveplot = 'none';
 cfg.feedback = 'none';
-ft_qualitycheck(cfg)
+ft_qualitycheck(cfg);
+

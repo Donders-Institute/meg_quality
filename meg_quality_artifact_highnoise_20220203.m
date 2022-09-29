@@ -102,9 +102,9 @@ end
 M = M - (n-1)./2;
 
 figure; hold on;
-imagesc(pow);
+imagesc(pow);axis tight; axis xy
 plot(M, 1:size(pow,1), 'wo');
-axis xy; axis tight
+
 
 bpfreq = freqs(M)' + repmat([-5 5], [numel(M) 1]);
 
@@ -120,7 +120,7 @@ data = ft_preprocessing(cfg);
 %% 5) bandpass filter per trial
 dataorig = data;
 for m = 1:numel(data.trial)
-  data.trial{m} = ft_preproc_bandpassfilter(data.trial{m}, 1200, bpfreq(m,:), [], 'firws');
+  [data.trial{m}, B{m}, A{m}] = ft_preproc_bandpassfilter(data.trial{m}, 1200, bpfreq(m,:), [], 'firws');
 end
 
 %% 6) PCA
@@ -141,6 +141,20 @@ cfg = [];
 cfg.component = 1:4;
 cfg.layout = 'CTF275_helmet.mat';
 ft_topoplotIC(cfg, comp);
+
+%% 5b/6b: use dss to identify components
+cfg               = [];
+cfg.channel       = 'MEG';
+cfg.numcomponent  = 10;
+cfg.cellmode      = 'yes';
+cfg.method        = 'dss';
+cfg.dss.algorithm = 'defl';
+%cfg.dss.algorithm = 'pca';
+cfg.dss.denf.function = 'denoise_filter2';
+cfg.dss.denf.params.filter_filtfilt.B = B;
+cfg.dss.denf.params.filter_filtfilt.A = A;
+cfg.dss.denf.params.filter_filtfilt.function = 'fir_filterdcpadded';
+dss = ft_componentanalysis(cfg, dataorig);
 
 %% 7) reject components and evaluate the effect
 Vm = mean(V, 2)';
